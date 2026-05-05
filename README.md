@@ -8,8 +8,8 @@ Agent Skills for the [Institute for Disease Modeling](https://www.idmod.org), co
 |---|---|---|
 | [idm-pkg-install](./idm-pkg-install/) | `/idm-pkg-install:install` | Set up a virtual environment and install any IDM package from PyPI, GitHub, or a local path |
 | [python-code-reviewer](./python-code-reviewer/) | `/python-code-reviewer:code-review` | Pre-PR Python code review: correctness, style, and IDM standards |
-| [eng-quality](./eng-quality/) | `/eng-quality:eng-quality-checker` | Score scientific research code against IDM Software Engineering Quality Guidelines |
-| [eng-quality](./eng-quality/) | `/eng-quality:eng-quality-fixer` | Apply improvements based on a prior `eng-quality-checker` report |
+| [experiment-dashboard](./experiment-dashboard/) | `/experiment-dashboard` | Use this skill when the user wants to create, generate, or deploy a self-hosted website to display or visualize simulation or experiment results |
+
 
 
 ## Installation (Claude Code)
@@ -22,7 +22,7 @@ claude plugin marketplace add https://github.com/InstituteforDiseaseModeling/idm
 **Step 2: Install the plugins you need**
 ```bash
 /plugin install python-code-reviewer@idm-agent-skills
-/plugin install eng-quality@idm-agent-skills
+/plugin install experiment-dashboard@idm-agent-skills
 /plugin install idm-pkg-install@idm-agent-skills
 ```
 
