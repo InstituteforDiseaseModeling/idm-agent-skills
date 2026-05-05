@@ -1,7 +1,7 @@
 ---
 name: python-code-reviewer
 description: Specialized agent for reviewing Python code before PRs. Runs pattern-based checks across changed files and produces a structured REVIEW.md report. Use when you want a dedicated code review session focused entirely on Python quality and safety checks.
-model: claude-sonnet-4-20250514
+model: claude-sonnet-4-6
 tools:
   - bash
   - read
