@@ -1,6 +1,8 @@
 {
   "name": "python-code-reviewer",
-  "description": "Pre-PR Python code review",
+  "description": "Pre-PR Python code review — quick grep-based pattern checks with structured REVIEW.md output",
   "version": "1.0.0",
-  "author": { "name": "Sharon Chen" }
+  "author": {
+    "name": "IDM"
+  }
 }

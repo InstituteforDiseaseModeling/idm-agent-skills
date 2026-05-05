@@ -1,115 +1,163 @@
 ---
 name: code-review
-description: Reviews Python code for correctness, style, and IDM standards. Use when reviewing a PR, checking code before submitting, or analyzing Python code quality in IDM projects.
+description: Reviews Python files for bugs, security issues, and code quality. Use when asked to review code, check before a PR, or audit .py files. Writes a structured REVIEW.md with findings.
 license: MIT
 metadata:
   version: "1.0.0"
   author: IDM
 ---
-
-## Overview
-
-Perform a structured Python code review for IDM projects. Focus on what is actually present in the code — skip sections that are not relevant to the PR (e.g. if there is no simulation config, skip that section entirely).
-
-## Review Structure
-
-Always start with a one-paragraph summary of what the code does and the overall assessment before diving into details.
-
-Use this severity system throughout:
-- 🔴 **Blocking** — must fix before merge (bugs, security issues, broken tests)
-- 🟡 **Suggestion** — recommended improvement (style, clarity, performance)
-- 🔵 **Nitpick** — minor, optional (naming preferences, minor formatting)
-
 ---
 
-## 1. Correctness
+# Python Code Reviewer
 
-- Does the code do what it claims to do?
-- Are there off-by-one errors, incorrect conditionals, or logic gaps?
-- Are edge cases handled (empty inputs, None values, zero, negative numbers)?
-- Are there any obvious bugs or unintended side effects?
+You are a Python code reviewer. Your job is to run quick pattern-based checks
+on Python files and produce a structured REVIEW.md report.
 
-## 2. Python Style & Formatting
+## Step 1 — Find files to review
 
-- Follows PEP 8 (indentation, line length, whitespace)
-- Uses type hints for function arguments and return values
-- Docstrings present for all public functions, classes, and modules
-- Naming is clear and follows snake_case for variables/functions, PascalCase for classes
-- No magic numbers — use named constants instead
-- No commented-out code left behind
+Run this to get Python files changed vs main:
+```bash
+git diff main...HEAD --name-only -- '*.py'
+```
 
-## 3. Code Quality
+If no git diff is available (e.g. user passed a path), review all `.py` files
+in the given path:
+```bash
+find . -name "*.py" -not -path "./.git/*" -not -path "./venv/*" -not -path "./.venv/*"
+```
 
-- Each function does one thing
-- No duplicated logic — shared code extracted to helpers
-- Appropriate use of Python idioms (list comprehensions, context managers, etc.)
-- No unnecessary complexity — simplest solution that works
-- Imports organized: standard library → third party → local
+If no files found, write REVIEW.md with `status: skipped` and stop.
 
-## 4. Error Handling
+## Step 2 — Run grep checks on each file
 
-- Exceptions caught at the right level
-- No bare `except:` — always catch specific exception types
-- Errors raise meaningful messages that help debugging
-- Resources (files, connections) closed properly using `with` statements
+For every `.py` file, run these checks:
 
-## 5. Testing
+```bash
+FILE="path/to/file.py"
 
-Skip this section if no tests are included in the PR.
+echo "=== 1. Hardcoded secrets ===" 
+grep -n -E "(password|secret|api_key|token|apikey)\s*=\s*['\"][^'\"]{4,}['\"]" "$FILE"
 
-- New functionality has corresponding tests
-- Tests cover happy path, edge cases, and failure cases
-- Assertions are meaningful — not just `assert result is not None`
-- Tests are independent and don't rely on each other's state
-- Uses pytest conventions (fixtures, parametrize where appropriate)
+echo "=== 2. Dangerous functions ===" 
+grep -n -E "\beval\s*\(|\bexec\s*\(|\bpickle\.loads?\s*\(|shell=True" "$FILE"
 
-## 6. IDM-Specific Checks
+echo "=== 3. Bare except ===" 
+grep -n -E "^\s*except\s*:" "$FILE"
 
-Apply only the subsections relevant to what the PR actually touches.
+echo "=== 4. Mutable default arguments ===" 
+grep -n -E "def\s+\w+\s*\(.*=\s*[\[\{]" "$FILE"
 
-### idmtools usage
-- Tasks and experiments constructed using idmtools builders, not raw dicts
-- Platform configuration loaded from `idmtools.ini`, not hardcoded
-- Asset collections used correctly for input files
-- No hardcoded COMPS paths or environment names
+echo "=== 5. Debug artifacts ===" 
+grep -n -E "\bprint\s*\(|#\s*(TODO|FIXME|HACK|XXX)" "$FILE"
 
-### emodpy / emodpy-malaria usage
-- Campaign and demographics builders used instead of raw JSON construction
-- Simulation configuration set through proper emodpy config functions
-- Input files referenced via asset collection, not absolute local paths
-- No hardcoded simulation parameters that should be arguments
+echo "=== 6. SQL injection risk ===" 
+grep -n -E "(execute|cursor)\s*\(\s*[f\"'].*(%s|\.format)" "$FILE"
 
-### General IDM conventions
-- No hardcoded local paths (use `pathlib.Path` and relative paths)
-- No credentials or tokens in code or comments
-- Large data files not committed to the repo — referenced externally
-- Dependencies added to `requirements.txt` or `setup.py`, not just imported
+echo "=== 7. Assert for validation ===" 
+grep -n -E "^\s*assert\b" "$FILE"
 
-## 7. Documentation
+echo "=== 8. open() without with ===" 
+grep -n -E "[^=\s]\s*open\s*\(" "$FILE" | grep -v "with open"
 
-- README updated if behavior or setup steps changed
-- Any new environment variables or config options documented
-- Complex logic has inline comments explaining *why*, not just *what*
+echo "=== 9. requests without timeout ===" 
+grep -n -E "requests\.(get|post|put|delete|patch)\s*\(" "$FILE" | grep -v "timeout"
+```
 
-## Output Format
+## Step 3 — Classify findings by severity
 
-Group findings by severity, then by section. Example:
+**Critical** (score = 0 if found):
+- Hardcoded secrets
+- `eval`/`exec` on user input
+- `pickle.loads` on untrusted data
+- `shell=True` with variable interpolation
+- SQL injection patterns
+
+**Warning:**
+- Bare `except:` clauses
+- Mutable default arguments
+- `assert` used for input validation
+- `open()` without `with`
+- `requests` calls without timeout
+
+**Info:**
+- `print()` statements in non-script files
+- TODO/FIXME/HACK comments
+- Debug artifacts
+
+## Step 4 — Write REVIEW.md
+
+Create `REVIEW.md` in the project root using this exact structure:
+
+```markdown
+---
+reviewed: <ISO timestamp>
+depth: quick
+files_reviewed: <N>
+files_reviewed_list:
+  - path/to/file.py
+findings:
+  critical: <N>
+  warning: <N>
+  info: <N>
+  total: <N>
+status: clean | issues_found | skipped
+---
+
+# Python Code Review
+
+**Reviewed:** <timestamp>
+**Depth:** quick
+**Files:** <N>
+**Status:** clean | issues_found
+
+## Summary
+
+<2-3 sentences describing what was reviewed and overall health.>
+
+## Critical Issues
+
+### CR-01: <Short Title>
+
+**File:** `path/to/file.py:<line>`
+**Issue:** <What the problem is and why it matters.>
+**Fix:**
+```python
+# corrected code
+```
+
+## Warnings
+
+### WR-01: <Short Title>
+
+**File:** `path/to/file.py:<line>`
+**Issue:** <Description.>
+**Fix:** <Suggestion.>
+
+## Info
+
+### IN-01: <Short Title>
+
+**File:** `path/to/file.py:<line>`
+**Issue:** <Description.>
 
 ---
-### Summary
-[One paragraph describing what the code does and overall quality]
+*Reviewer: Claude (python-code-reviewer)*
+*Depth: quick*
+```
 
-### 🔴 Blocking
-- `filename.py:42` — [issue and why it matters]
+## Step 5 — Print result to chat
 
-### 🟡 Suggestions
-- `filename.py:15` — [what to improve and why]
+After writing REVIEW.md, print a one-line summary:
 
-### 🔵 Nitpicks
-- `filename.py:8` — [minor preference]
+- If `critical > 0`: `❌ BLOCKED — N critical issue(s) found. See REVIEW.md`
+- If `warning > 0` and `critical == 0`: `⚠️  N warning(s) found. See REVIEW.md`
+- If all clean: `✅ Pre-PR check passed — no issues found.`
 
-### ✅ Looks good
-- [note anything done particularly well — not just problems]
----
+## Rules
 
-If a section has no findings, omit it from the output. Always end with the ✅ section to acknowledge what was done well.
+- **Never modify source files.** This skill is read-only. Only REVIEW.md is written.
+- **Always include line numbers.** Never write "somewhere in the file."
+- **Every Critical and Warning must have a concrete fix suggestion.**
+- **Do not flag test files** unless the issue would make tests unreliable.
+- **`clean` and `skipped` are not the same.** Only use `clean` when files were
+  actually reviewed and nothing was found.
