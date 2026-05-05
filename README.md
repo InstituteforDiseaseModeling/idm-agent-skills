@@ -14,22 +14,30 @@ Agent Skills for the [Institute for Disease Modeling](https://www.idmod.org), co
 
 ## Installation (Claude Code)
 
-**Step 1: Register this repo as a marketplace (once)**
+**Step 1: Add the marketplace (once per person)**
 ```bash
-claude plugin marketplace add https://github.com/InstituteforDiseaseModeling/idm_standards
+claude plugin marketplace add https://github.com/InstituteforDiseaseModeling/idm-agent-skills --scope user
 ```
 
-**Step 2: Install the plugins you need**
+**Step 2: Install any plugin from it**
 ```bash
-/plugin install python-code-reviewer@idm-agent-skills
-/plugin install experiment-dashboard@idm-agent-skills
 /plugin install idm-pkg-install@idm-agent-skills
+/plugin install experiment-dashboard@idm-agent-skills
+/plugin install python-code-reviewer@idm-agent-skills
 ```
 
 **Step 3: Reload plugins**
 ```bash
 /reload-plugins
 ```
+
+**Step 4 — Invoke the skill**
+```bash
+/experiment-dashboard:results-dashboard
+/python-code-reviewer:code-review
+/idm-pkg-install:install [github_repo|local_repo] [prod|dev]
+/idm-pkg-install:install pypi emodpy
+````
 
 ## Local Development & Testing
 

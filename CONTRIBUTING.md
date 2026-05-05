@@ -24,6 +24,8 @@ configuration with the user.
 
 ```
 idm-agent-skills/
+  <.claude-plugin>/
+     marketplace.json     # list all plugins
   <plugin-name>/
     .claude-plugin/
       plugin.json         # plugin manifest
@@ -36,7 +38,7 @@ idm-agent-skills/
 ```
 
 Each plugin lives in its own top-level folder. One plugin can contain
-multiple skills and agents.
+multiple skills and agents. You need to add your new plugin to marketplace.json
 
 ---
 

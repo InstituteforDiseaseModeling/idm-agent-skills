@@ -1,6 +1,6 @@
 {
   "name": "idm-agent-skills",
-  "description": "Agent skills for Institute for Disease Modeling Python workflows",
+  "description": "Agent skills for Institute for Disease Modeling",
   "version": "1.0.0",
   "author": {
     "name": "Institute for Disease Modeling"
