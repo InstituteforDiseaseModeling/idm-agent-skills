@@ -1,91 +1,189 @@
-# Contributing to idm-agent-skills
+# Contributing to IDM Agent Skills
 
-## Adding a New Skill
+This repository is a collection of Claude Code plugins for IDM engineering
+workflows. Anyone at IDM can contribute a new skill or agent — this guide
+walks you through the process.
 
-Each skill lives inside its own plugin folder at the repo root. The structure looks like this:
+---
+
+## What is a skill vs an agent?
+
+| | Skill | Agent |
+|---|---|---|
+| **What it is** | A set of instructions Claude follows to complete a task | A full conversational session with its own persona and tool restrictions |
+| **Best for** | Repeatable, single-step tasks | Multi-step workflows that need user input or configuration |
+| **Invoked via** | `/plugin-name:skill-name` | `/agents` → select from list |
+| **File type** | `skills/<name>/SKILL.md` | `agents/<name>.md` |
+
+Start with a skill. Add an agent only if your workflow needs back-and-forth
+configuration with the user.
+
+---
+
+## Repository structure
 
 ```
-<plugin-name>/
-├── .claude-plugin/
-│   └── plugin.json        ← required plugin manifest
-├── skills/
-│   └── <skill-name>/
-│       └── SKILL.md       ← skill instructions
-└── README.md              ← usage examples (recommended)
+idm-agent-skills/
+  <plugin-name>/
+    .claude-plugin/
+      plugin.json         # plugin manifest
+    skills/
+      <skill-name>/
+        SKILL.md          # skill instructions
+    agents/
+      <agent-name>.md     # agent definition (optional)
+    README.md             # plugin documentation
 ```
 
-### Steps
+Each plugin lives in its own top-level folder. One plugin can contain
+multiple skills and agents.
 
-1. Create a top-level folder with a short kebab-case name (e.g. `my-workflow/`)
-2. Add `.claude-plugin/plugin.json` using the template below
-3. Create `skills/<skill-name>/SKILL.md` using the template below
-4. Add a `README.md` with usage examples
-5. Open a pull request — at least one reviewer required before merging
+---
 
-## plugin.json Template
+## Step-by-step: adding a new skill
+
+### Step 1 — Create your plugin folder
+
+```bash
+mkdir -p my-plugin/.claude-plugin
+mkdir -p my-plugin/skills/my-skill
+```
+
+### Step 2 — Write the plugin manifest
+
+Create `my-plugin/.claude-plugin/plugin.json`:
 
 ```json
 {
-  "name": "my-workflow",
-  "description": "One sentence describing what this plugin does",
+  "name": "my-plugin",
   "version": "1.0.0",
-  "author": { "name": "Your Name" }
+  "description": "One or two sentences describing when Claude should use this plugin. Be specific about trigger phrases and what it does. Add a Do NOT use for... line to prevent false triggers.",
+  "author": {
+    "name": "Your Name"
+  },
+  "keywords": [
+    "keyword1",
+    "keyword2"
+  ]
 }
 ```
 
-## SKILL.md Template
+**Tips for a good description:**
+- Say when to trigger it ("Use when the user mentions X or asks to Y")
+- Say what it does ("Generates a Z report with...")
+- Say when NOT to use it ("Do NOT use for general web development...")
+
+### Step 3 — Write the skill
+
+Create `my-plugin/skills/my-skill/SKILL.md`:
 
 ```markdown
 ---
-name: my-skill-name
-description: One sentence describing what this skill does and when the agent should use it
-license: MIT
-metadata:
-  version: "1.0.0"
-  author: IDM
+name: my-skill
+description: One-line summary of what this skill does.
 ---
 
-## Overview
-(What this skill does and why it exists)
+<Instructions for Claude go here. Be specific and step-by-step.>
 
-## Prerequisites
-(What must be true before running this skill)
+## What to do
+1. First, do X
+2. Then, do Y
+3. Finally, output Z
 
-## Steps
-(The actual instructions)
-
-## Verification
-(How to confirm it worked)
-
-## Troubleshooting
-(Common problems and fixes)
-
-## References
-(Links to docs, repos, internal resources)
+## Rules
+- Never modify source files
+- Always confirm before destructive actions
 ```
 
-## Tips for Good Skills
+### Step 4 — Write the README
 
-- **Description matters most.** The agent uses it to decide whether to load the skill. Be specific and action-oriented.
-- **Start with the boring stuff.** Repeated, error-prone, undocumented workflows make the best first skills.
-- **Test locally first.** Pass the plugin folder to Claude Code directly before submitting.
-- **Keep scope narrow.** One skill per workflow. Don't try to cover everything in one file.
+Copy the structure from an existing plugin README (e.g. `experiment-dashboard/README.md`)
+and update it for your plugin. Every README should include:
 
-## Local Testing
+- What the plugin does
+- Installation instructions
+- Usage (skill and/or agent invocation)
+- Output description
+- Plugin structure diagram
 
-Test your plugin locally without installing it from the marketplace:
+### Step 5 — Test locally
 
 ```bash
-claude --plugin-dir ./my-new-plugin
+# Add the local repo as a marketplace source
+claude plugin marketplace add /path/to/idm-agent-skills --scope user
+
+# Install your plugin
+/plugin install my-plugin@idm-agent-skills
+
+# Invoke your skill
+/my-plugin:my-skill
 ```
 
-Then invoke the skill by name in a Claude Code session to verify it loads and behaves correctly.
+### Step 6 — Open a pull request
 
-## Review Checklist
+- Branch name: `add/<plugin-name>`
+- PR title: `Add <plugin-name> plugin — <one line description>`
+- Include a short demo or screenshot in the PR description if possible
 
-- [ ] `.claude-plugin/plugin.json` is present with `name`, `description`, and `version`
-- [ ] YAML frontmatter in `SKILL.md` is valid (`name`, `description`, `license`, `metadata.version`)
-- [ ] Description is specific enough for an agent to know when to use it
-- [ ] Steps are complete and accurate (tested on a real machine)
-- [ ] Troubleshooting section covers the most common failure modes
-- [ ] References link to up-to-date documentation
+---
+
+## Naming conventions
+
+| Thing | Convention | Example |
+|---|---|---|
+| Plugin name | kebab-case | `experiment-dashboard` |
+| Skill folder | kebab-case | `results-dashboard` |
+| Agent file | kebab-case | `experiment-dashboard.md` |
+| Plugin version | semver | `1.0.0` |
+
+---
+
+## Writing good skill instructions
+
+The quality of your `SKILL.md` determines how well Claude performs the task.
+Follow these principles:
+
+- **Be explicit** — don't assume Claude knows your domain; spell out every step
+- **Define outputs** — describe exactly what files or messages the skill should produce
+- **Add rules** — list what Claude should never do (e.g. never modify source files)
+- **Handle edge cases** — what should happen if a file is missing? A directory is empty?
+- **Use trigger phrases** — list example things a user might say to invoke the skill
+
+---
+
+## Adding an agent
+
+Add an agent only if your workflow needs guided configuration. Create
+`my-plugin/agents/my-agent.md`:
+
+```markdown
+---
+name: my-agent
+description: One-line summary of what this agent does.
+allowed-tools:
+  - Read
+  - Write
+  - Bash(python:*)
+---
+
+You are a <role> specialist. Your job is to <goal>.
+
+## Phase 1 — Configuration
+Ask the user these questions one at a time...
+
+## Phase 2 — Execution
+After confirmation, do the following...
+
+## Rules
+- Always confirm before writing files
+- Never modify source files
+```
+
+**Allowed tools** — only grant what the agent actually needs. Common options:
+`Read`, `Write`, `Edit`, `Bash(python:*)`, `Bash(pip:*)`, `Bash(git:*)`.
+
+---
+
+## Questions?
+
+Open an issue or ping the IDM engineering Slack channel.
