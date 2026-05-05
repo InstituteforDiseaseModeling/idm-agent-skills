@@ -5,11 +5,9 @@
   },
   "plugins": [
     {
-      "name": "idm-eng-plugin",
-      "source": {
-        "source": "github",
-        "repo": "InstituteforDiseaseModeling/idm_standards"
-      }
+      "name": "experiment-dashboard",
+      "source": "./experiment-dashboard",
+      "description": "Use this skill when the user wants to create, generate, or deploy a self-hosted website to display or visualize simulation or experiment results from a container platform"
     },
     {
       "name": "idm-pkg-install",
