@@ -37,7 +37,7 @@ Clone the repo and test locally without installing:
 ```bash
 git clone https://github.com/InstituteforDiseaseModeling/idm-agent-skills.git
 claude --plugin-dir ./idm-agent-skills/python-code-reviewer
-claude --plugin-dir ./idm-agent-skills/eng-quality
+claude --plugin-dir ./idm-agent-skills/experiment-dashboard
 claude --plugin-dir ./idm-agent-skills/idm-pkg-install
 ```
 
