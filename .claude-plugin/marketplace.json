@@ -1,0 +1,25 @@
+{
+  "name": "idm-agent-skills",
+  "owner": {
+    "name": "IDM"
+  },
+  "plugins": [
+    {
+      "name": "idm-eng-plugin",
+      "source": {
+        "source": "github",
+        "repo": "InstituteforDiseaseModeling/idm_standards"
+      }
+    },
+    {
+      "name": "idm-pkg-install",
+      "source": "./idm-pkg-install",
+      "description": "Setup virtual environment and install IDM packages"
+    },
+    {
+      "name": "python-code-reviewer",
+      "source": "./python-code-reviewer",
+      "description": "Pre-PR Python code review — quick grep-based checks"
+    }
+  ]
+}

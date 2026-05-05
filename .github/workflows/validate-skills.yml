@@ -1,0 +1,46 @@
+name: Validate Skills
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install skills-ref
+        run: pip install skills-ref
+
+      - name: Validate all skills
+        run: |
+          failed=0
+          for skill_md in */skills/*/SKILL.md; do
+            skill_dir=$(dirname "$skill_md")
+            echo "Validating $skill_dir..."
+            result=$(python -c "
+          from skills_ref import validate
+          result = validate('$skill_dir')
+          if result:
+              for error in result:
+                  print(error)
+          ")
+            if [ -n "$result" ]; then
+              echo "FAILED: $skill_dir"
+              echo "$result"
+              failed=1
+            else
+              echo "PASSED: $skill_dir"
+            fi
+          done
+          exit $failed

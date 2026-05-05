@@ -1,0 +1,21 @@
+{
+  "name": "idm-pkg-install",
+  "version": "1.0.0",
+  "description": "Setup virtual environment and install IDM packages for any IDM repository",
+  "author": {
+    "name": "Sharon Chen"
+  },
+  "keywords": [
+    "idm",
+    "install",
+    "python",
+    "environment",
+    "conda"
+  ],
+  "skills": [
+    "./skills/"
+  ],
+  "commands": [
+    "./commands/"
+  ]
+}

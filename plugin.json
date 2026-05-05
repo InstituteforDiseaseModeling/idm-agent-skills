@@ -1,0 +1,11 @@
+{
+  "name": "idm-agent-skills",
+  "description": "Agent skills for Institute for Disease Modeling Python workflows",
+  "version": "1.0.0",
+  "author": {
+    "name": "Institute for Disease Modeling"
+  },
+  "homepage": "https://github.com/InstituteforDiseaseModeling/idm-agent-skills",
+  "repository": "https://github.com/InstituteforDiseaseModeling/idm-agent-skills",
+  "license": "MIT"
+}
