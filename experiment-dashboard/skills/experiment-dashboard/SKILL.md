@@ -1,3 +1,10 @@
+---
+name: experiment-dashboard
+description: Create a self-hosted Python website to display simulation
+  and experiment results from idmtools container platform runs,
+  including charts, data tables, and file downloads.
+---
+
 # SKILL: COMPS-Style Data Dashboard
 
 ## Purpose
