@@ -159,7 +159,7 @@ When the user clicks a file in the left pane, the right pane renders based on fi
 
 ## Chart rendering rules
 
-Use **Chart.js** (load from cdnjs) for all charts unless the output format is Python.
+Use **Chart.js** (load from jsdelivr, never use cdnjs.cloudflare.com for Chart.js) for all charts unless the output format is Python.
 
 - Extract line color, fill opacity, grid line color, and tooltip style from `screenshots/insetchart.png`
 - Always wrap canvas in a `position: relative` div with explicit height

@@ -6,7 +6,6 @@ metadata:
   version: "1.0.0"
   author: IDM
 ---
----
 
 # Python Code Reviewer
 
