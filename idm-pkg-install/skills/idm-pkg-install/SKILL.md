@@ -8,7 +8,7 @@ description: |
   like 'install emodpy', 'install this repo', 'set up the environment for', or 'get this running'.
   Use this skill before writing any install commands — it determines the correct source, strategy,
   and mode based on what the user wants.
-argument-hint: "[pypi|github-url|local-path] [dev|prod]"
+argument-hint: "[pypi|github-url|local-path] [dev|prod|requirements]"
 allowed-tools: Bash, Read, Edit, Glob, Grep
 ---
 
@@ -39,16 +39,23 @@ If not already specified, ask the user:
 
 Not applicable for PyPI — a PyPI install always installs a fixed release into site-packages.
 
-For GitHub and local sources, confirm with the user if not already specified:
-
-> "Should I do a **dev install** (editable, `pip install -e .` — source changes take effect immediately) or a **prod install** (standard, `pip install .` — builds from local source into site-packages; source edits don't take effect until you reinstall)?"
+For GitHub and local sources, three modes are available:
 
 | Mode | Command | When to use |
 |------|---------|-------------|
 | **Dev** (editable) | `pip install -e .` | Actively modifying the package — changes reflect immediately |
 | **Prod** (standard) | `pip install .` | Using the package as a consumer — installs a fixed copy from local source |
+| **Requirements** | `pip install -r requirements.txt` | Repo has no installable package (no `pyproject.toml`/`setup.py`) — only dependencies |
 
-Both modes install from **local source on disk** — neither downloads from PyPI. The `.` means "this directory." To install from PyPI use `pip install <package-name>` with no `.` (see PyPI section below).
+**Dev** and **Prod** both install from **local source on disk** — neither downloads from PyPI. The `.` means "this directory." To install from PyPI use `pip install <package-name>` with no `.` (see PyPI section below).
+
+**When to ask vs. auto-detect:**
+
+- If the user passed the mode as an argument (`dev`, `prod`, or `requirements`), use it directly — do not ask.
+- Otherwise, **defer the question until after repo inspection** ([Step 1](#step-1)). Once you know what files exist:
+  - If only `requirements.txt` is present (no `pyproject.toml`, no `setup.py`/`setup.cfg`) → **auto-select `requirements` mode**, no prompt needed.
+  - If an installable package is present → ask: *"Should I do a **dev install** (editable, `pip install -e .`) or a **prod install** (standard, `pip install .`)?"*
+  - If both an installable package AND a `requirements.txt` are present and you're unsure → offer all three options.
 
 Apply the chosen mode consistently across all install commands in the session.
 
@@ -130,7 +137,7 @@ REPO=$(pwd)
 
 ---
 
-### Step 1 — Inspect the repo before doing anything
+### Step 1 — Inspect the repo before doing anything {#step-1}
 
 Read these files in order. Stop at the first one that exists and contains install instructions; use the others to fill in gaps.
 
@@ -254,7 +261,7 @@ If multiple environment files exist (`environment-dev.yml`, `environment-gpu.yml
 
 ### Strategy: requirements.txt
 
-For script-level repos with no installable package.
+For script-level repos with no installable package. This is the **`requirements` mode** from [Decision 2](#decision-2--install-mode-repo-and-local-sources-only) — auto-selected when no `pyproject.toml` / `setup.py` is present, or chosen explicitly by the user.
 
 ```bash
 cd $REPO
@@ -265,7 +272,7 @@ pip install -r requirements.txt --break-system-packages
 pip install -r requirements.txt -r requirements-dev.txt --break-system-packages
 ```
 
-Dev/prod mode does not apply — there is no installable package, only dependencies.
+Dev/prod does not apply here — there is no installable package, only dependencies. If the repo *does* have an installable package but the user explicitly asked for `requirements` mode, install only the listed dependencies and skip `pip install .` / `pip install -e .`.
 
 ---
 
@@ -376,9 +383,12 @@ pytest tests/ -x -q 2>/dev/null \
 **GitHub / local source:**
 1. Resolve path — clone if GitHub URL, default to `pwd` if nothing given.
 2. **Create and activate an isolated environment (mandatory).** Ask: venv or conda? Never skip.
-3. Confirm install mode — `dev` (`-e .`) or `prod` (`.`).
-4. Inspect the repo — README + install files.
-5. Pick strategy — `pyproject.toml` > `setup.py` > `environment.yml` > `requirements.txt` > manual.
+3. Inspect the repo — README + install files.
+4. Pick strategy — `pyproject.toml` > `setup.py` > `environment.yml` > `requirements.txt` > manual.
+5. Confirm install mode based on what was found:
+   - Mode was passed as an argument → use it.
+   - Only `requirements.txt` found → auto-select `requirements`, no prompt.
+   - Installable package found → ask `dev` (`-e .`) vs `prod` (`.`).
 6. Check for IDM-internal packages — flag if Artifactory/SSH needed.
 7. Run the install using the chosen strategy and mode.
 8. Verify — import the package and run any available tests.
