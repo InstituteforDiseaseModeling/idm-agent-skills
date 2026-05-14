@@ -1,209 +1,124 @@
-# python-code-reviewer
+# Python Code Reviewer & Fixer
 
-A Claude Code plugin for reviewing Python code before creating a PR. Runs fast,
-grep-based pattern checks across changed files and produces a structured
-`REVIEW.md` report with severity-classified findings and concrete fix suggestions.
+A pair of Claude Code skills for reviewing and fixing Python 3 code before pull requests. The reviewer finds issues; the fixer resolves them — each skill can also be used independently.
 
 ---
 
-## Features
+## Skills
 
-- **Quick pattern matching** — no full file reads needed; runs in seconds
-- **9 check categories** — secrets, dangerous functions, bare excepts, mutable
-  defaults, debug artifacts, SQL injection, assert misuse, resource leaks,
-  missing timeouts
-- **Severity classification** — Critical (blocks PR), Warning, Info
-- **Structured output** — writes `REVIEW.md` with YAML frontmatter, finding IDs
-  (CR-01, WR-01, IN-01), line numbers, and fix suggestions
-- **Two invocation modes** — quick inline skill or dedicated review agent
+| Skill | Purpose |
+|-------|---------|
+| `python-code-reviewer` | Scans Python files for bugs, security issues, and code quality problems. Produces `REVIEW.md`. |
+| `python-code-fixer` | Reads `REVIEW.md` and applies fixes to source files. Produces `REVIEW-FIX.md`. |
 
 ---
 
-## Installation
+## Quick Start
 
-### Step 1 — Add the IDM marketplace (one time)
-
-```bash
-claude plugin marketplace add https://github.com/InstituteforDiseaseModeling/idm-agent-skills --scope user
+### 1. Review changed files
 ```
-
-### Step 2 — Install the plugin
-
-Inside Claude Code:
+/python-code-reviewer:python-code-review
 ```
-/plugin install python-code-reviewer@idm-agent-skills
+This scans all `.py` files changed vs `main`, writes `REVIEW.md` to the project root, and prints a one-line summary.
+
+### 2. Fix the findings
 ```
+/python-code-fixer:python-code-fix
+```
+This reads `REVIEW.md`, applies fixes to source files, commits each fix atomically, and writes `REVIEW-FIX.md`.
 
 ---
 
-## Usage
+## What the Reviewer Checks
 
-### As a skill (recommended for pre-PR checks)
+| Severity | Check |
+|----------|-------|
+| Critical | Hardcoded secrets (passwords, API keys, tokens) |
+| Critical | Dangerous functions (`eval`, `exec`, `pickle.loads`, `shell=True`) |
+| Critical | SQL injection patterns |
+| Warning | Bare `except:` clauses |
+| Warning | Mutable default arguments |
+| Warning | `assert` used for input validation |
+| Warning | `open()` without `with` |
+| Warning | `requests` calls without timeout |
+| Info | `print()` in non-script files |
+| Info | TODO / FIXME / HACK comments |
 
-```
-/python-code-reviewer:review
-```
-
-Runs grep checks on all `.py` files changed vs `main`, writes `REVIEW.md`,
-and prints a one-line summary to chat.
-
-### As an agent (for a dedicated review session)
-
-```
-/agents
-# select python-code-reviewer from the list
-```
-
-Spins up a full review session with tool restrictions — the agent can only
-read files and write `REVIEW.md`, never modify source.
+Checks use pattern matching via the Claude Code `Grep` tool — no code execution required.
 
 ---
 
-## Output
+## Output Files
 
-The plugin writes `REVIEW.md` to your project root after every review:
+### `REVIEW.md`
+Written by `python-code-reviewer` to the project root. Contains:
+- YAML frontmatter with counts and status (`clean`, `issues_found`, or `skipped`)
+- Findings grouped by severity (Critical → Warning → Info)
+- Each finding includes file path, line number, issue description, and a concrete fix suggestion
 
-```markdown
----
-reviewed: 2026-05-04T10:30:00Z
-depth: quick
-files_reviewed: 3
-files_reviewed_list:
-  - src/simulation.py
-  - src/calibration.py
-  - tests/test_utils.py
-findings:
-  critical: 1
-  warning: 2
-  info: 1
-  total: 4
-status: issues_found
----
-
-# Python Code Review
-
-**Reviewed:** 2026-05-04T10:30:00Z
-**Depth:** quick
-**Files:** 3
-**Status:** issues_found
-
-## Summary
-
-Reviewed 3 files changed vs main. One critical issue found — a hardcoded API
-token in src/simulation.py that must be removed before merging. Two warnings
-for bare except clauses and one informational TODO comment.
-
-## Critical Issues
-
-### CR-01: Hardcoded API Token
-
-**File:** `src/simulation.py:14`
-**Issue:** API token hardcoded as a string literal. Anyone with repo access
-can read and misuse this credential.
-**Fix:**
-```python
-# use environment variable instead
-import os
-api_token = os.environ["API_TOKEN"]
-```
-
-## Warnings
-
-### WR-01: Bare Except Clause
-
-**File:** `src/calibration.py:88`
-**Issue:** Bare `except:` silently swallows all exceptions including
-KeyboardInterrupt and SystemExit, making bugs hard to detect.
-**Fix:** Catch specific exceptions: `except ValueError:` or `except Exception as e:`
-
-...
-```
+### `REVIEW-FIX.md`
+Written by `python-code-fixer` next to `REVIEW.md`. Contains:
+- Summary of findings in scope, fixed, and skipped
+- Per-finding result: commit hash (if fixed) or skip reason (if skipped)
 
 ---
 
-## Check categories
+## How the Fixer Works
 
-| # | Check | Severity |
-|---|-------|----------|
-| 1 | Hardcoded secrets (password, token, api_key) | Critical |
-| 2 | Dangerous functions (eval, exec, pickle.loads, shell=True) | Critical |
-| 3 | SQL injection patterns | Critical |
-| 4 | Bare `except:` clauses | Warning |
-| 5 | Mutable default arguments | Warning |
-| 6 | `assert` used for input validation | Warning |
-| 7 | `open()` without `with` statement | Warning |
-| 8 | `requests` calls without timeout | Warning |
-| 9 | Debug artifacts (print, TODO, FIXME, HACK) | Info |
+The fixer reads each finding from `REVIEW.md` and:
+1. Reads the actual source file at the cited line (never applies fixes blindly)
+2. Adapts the fix suggestion to the current code state
+3. Applies the fix using targeted edits
+4. Verifies the fix with a Python syntax check (`python3 -m py_compile` or `python -m py_compile`)
+5. Commits the fix atomically: `fix: CR-01 description`
+6. Rolls back via `git checkout -- {file}` if verification fails
+
+Findings that can't be cleanly applied are skipped with a documented reason — the fixer never forces broken fixes.
+
+### Modes
+- **Standalone Mode (default):** reads `./REVIEW.md`, writes `./REVIEW-FIX.md`, operates on the current working tree. No worktree setup needed.
+- **Phase Mode:** invoked by an orchestrator with a `<config>` block. Creates an isolated git worktree, commits fixes there, then fast-forwards the main branch on cleanup.
 
 ---
 
-## Status values
+## Scope & Exclusions
 
-| Status | Meaning |
+Both skills automatically exclude:
+- `.git/`, `venv/`, `.venv/`, `env/`, `.env/`
+- `node_modules/`, `__pycache__/`, `.tox/`, `.pytest_cache/`
+- `build/`, `dist/`, `*.egg-info/`
+
+Project-specific exclusions are honored from `.gitignore`, `.reviewignore`, or `tool.python-code-reviewer.exclude` in `pyproject.toml`.
+
+The fixer skips any finding that targets a non-`.py` file.
+
+---
+
+## Requirements
+
+- Python 3 (for syntax verification in the fixer)
+- Git (for `git diff` scoping and atomic commits)
+- Claude Code with these skills installed
+
+---
+
+## One-Line Status Legend
+
+After a review run, the chat summary follows this priority:
+
+| Output | Meaning |
 |--------|---------|
-| `issues_found` | One or more findings exist |
-| `clean` | Files reviewed, nothing found |
-| `skipped` | No `.py` files found to review |
-
-`clean` and `skipped` are not the same — `clean` means files were reviewed
-and passed.
-
----
-
-## Pre-PR gate (recommended workflow)
-
-Add a `.claude/commands/pre-pr.md` to your project:
-
-```markdown
----
-name: pre-pr
-description: Review Python changes before creating a PR
----
-
-1. Run /python-code-reviewer:review
-2. If REVIEW.md shows critical > 0, print BLOCKED and stop
-3. If clean, print "✅ Safe to open PR"
-```
-
-Then before every PR:
-```
-/pre-pr
-```
-
----
-
-## Plugin structure
-
-```
-python-code-reviewer/
-  .claude-plugin/
-    plugin.json          # plugin manifest
-  skills/
-    review/
-      SKILL.md           # grep checks + REVIEW.md output logic
-  agents/
-    python-code-reviewer.md   # dedicated review agent
-  README.md
-```
+| `❌ BLOCKED — N critical issue(s) found. See REVIEW.md` | PR should not merge |
+| `⚠️ N warning(s) found. See REVIEW.md` | Issues to address before merge |
+| `ℹ️ N info-level note(s). See REVIEW.md` | Low-priority observations |
+| `✅ Pre-PR check passed — no issues found.` | Clean, ready to merge |
+| `⏭️ Skipped — no Python files in scope.` | Nothing to review |
 
 ---
 
 ## Notes
 
-- **Read-only** — never modifies source files; only writes `REVIEW.md`
-- **Test files** — test files are reviewed but flagged with lower priority
-  unless the issue would make tests unreliable (e.g. bare except hiding
-  assertion failures)
-- **Scope** — performance issues are out of scope unless they are also
-  correctness issues (infinite loops, not slow algorithms)
-- **Project conventions** — if your project has a `CLAUDE.md` defining
-  conventions (e.g. "we use assert for preconditions intentionally"), the
-  reviewer respects those
-
----
-
-## Part of IDM Agent Skills
-
-This plugin is part of the
-[idm-agent-skills](https://github.com/InstituteforDiseaseModeling/idm-agent-skills)
-marketplace — a collection of Claude Code plugins for IDM engineering workflows.
+- The reviewer is **read-only** — it never modifies source files, only writes `REVIEW.md`.
+- The fixer only touches `.py` files explicitly cited in `REVIEW.md` findings.
+- Finding IDs (`CR-NN`, `WR-NN`, `IN-NN`) and the `**File:**`/`**Issue:**`/`**Fix:**` fields in `REVIEW.md` must not be renamed — the fixer's parser depends on them.
+- If `REVIEW.md` already exists, a new review run overwrites it entirely.

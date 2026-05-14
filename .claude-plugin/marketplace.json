@@ -18,6 +18,11 @@
       "name": "python-code-reviewer",
       "source": "./python-code-reviewer",
       "description": "Pre-PR Python code review — quick grep-based checks"
+    },
+    {
+      "name": "python-code-fixer",
+      "source": "./python-code-fixer",
+      "description": "Fix to Python code review findings from REVIEW.md"
     }
   ]
 }

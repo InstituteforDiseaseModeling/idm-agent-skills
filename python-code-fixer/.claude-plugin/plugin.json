@@ -1,0 +1,8 @@
+{
+  "name": "python-code-fixer",
+  "description": "Fix to Python code review findings from REVIEW.md",
+  "version": "1.0.0",
+  "author": {
+    "name": "Sharon Chen"
+  }
+}
