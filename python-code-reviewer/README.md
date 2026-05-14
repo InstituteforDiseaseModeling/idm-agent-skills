@@ -23,7 +23,7 @@ This scans all `.py` files changed vs `main`, writes `REVIEW.md` to the project 
 
 ### 2. Fix the findings
 ```
-/python-code-fixer:python-code-fix
+/python-code-fixer:python-code-fixer
 ```
 This reads `REVIEW.md`, applies fixes to source files, commits each fix atomically, and writes `REVIEW-FIX.md`.
 
